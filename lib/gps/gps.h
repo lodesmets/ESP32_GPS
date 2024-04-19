@@ -23,6 +23,8 @@ struct Coord {
 };
 
 
-Coord getPosition(HardwareSerial& serialGPS);
+bool getPosition(HardwareSerial& serialGPS, Coord& coord);
+
+void initGps(HardwareSerial& serialGPS);
 
 #endif
