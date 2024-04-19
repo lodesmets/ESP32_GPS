@@ -6,6 +6,8 @@
 #include "../lib/conf.h"
 #include "env.h"
 
+#define SYNC_TRACKING_POINTS 100    // sync tracking points every x points
+
 TFT_eSPI tft = TFT_eSPI();
 HardwareSerial SerialGPS(1);
 ViewPort viewPort;
@@ -100,14 +102,23 @@ void setup()
 double prev_lat=500, prev_lng=500;
 Coord coord;
 std::vector<Coord> samples;
+std::vector<Coord> coord_not_synced; // sync every SYNC_TRACKING_POINTS points to GPX file
+bool tracking_enabled = false;
+
 void loop()
 {
     Point32 p = viewPort.center;
     bool moved = false;
+    if (getPosition( SerialGPS, coord))
+    {
+        if(tracking_enabled)
+        {
+            coord_not_synced.push_back(coord);
+        }
+    }
 
     if( mode == DEVMODE_NAV){
-        coord = getPosition( SerialGPS );
-        if( coord.isValid && 
+        if(coord.isValid && 
             abs(coord.lat-prev_lat) > 0.00005 &&
             abs(coord.lng-prev_lng) > 0.00005 ){
                 p = coord.getPoint32();
@@ -130,7 +141,7 @@ void loop()
             esp_light_sleep_start();
             wakeup_reason = esp_sleep_get_wakeup_cause();
             if( wakeup_reason == ESP_SLEEP_WAKEUP_TIMER){
-                coord = getPosition( SerialGPS );
+                getPosition( SerialGPS, coord);
                 // TODO
             }
         } while( wakeup_reason == ESP_SLEEP_WAKEUP_TIMER);
